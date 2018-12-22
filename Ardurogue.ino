@@ -1,6 +1,6 @@
 #include <Arduboy2.h>
 #include "bitwiseops.h"
-//#include "dungeongen.h"
+#include "dungeongen.h"
 
 Arduboy2 arduboy;
 Sprites sprites;
@@ -9,12 +9,15 @@ Sprites sprites;
 #define GAME_PLAY 1
 #define GAME_OVER 2
 #define GAME_HIGH 3
+#define LEVEL_SETUP 4
 
 //temporary between these comments
 #define PLAYER_SIZE      8
-#define PLAYER_X_OFFSET   WIDTH / 2 - PLAYER_SIZE / 2
-#define PLAYER_Y_OFFSET   HEIGHT / 2 - PLAYER_SIZE / 2
+#define PLAYER_X_OFFSET   (6*8)// - PLAYER_SIZE / 2
+#define PLAYER_Y_OFFSET   (3*8)// - PLAYER_SIZE / 2
 //temporary between these comments
+unsigned char playerx;
+unsigned char playery;
 
 unsigned char genned;
 
@@ -315,12 +318,79 @@ void drawplayer() {
 }
 //temporary between these comments
 
-void drawworld() {
+void drawworld()
+{  
+  //constexpr int screenWidthInTiles = (WIDTH / TILE_SIZE);
+  //constexpr int screenHeightInTiles = (HEIGHT / TILE_SIZE);
+
+  setMapBit(4,4);
   setMapBit(8,8);
   setMapBit(7,7);
+
+  unsigned char screentlx = playerx-6;
+  //unsigned char screenbrx = playerx+8;
+  unsigned char screently = playery-3;
+  //unsigned char screenbry = playery+4;
+  
+  /*
+  const int tempFirstX = (-mapx / TILE_SIZE);
+  const int tempFirstY = (-mapy / TILE_SIZE);
+  const int tempLastX = (tempFirstX + screenWidthInTiles);
+  const int tempLastY = (tempFirstY + screenHeightInTiles);
+
+  const int firstX = (tempFirstX >= 0) ? tempFirstX : 0;
+  const int firstY = (tempFirstY >= 0) ? tempFirstY : 0;
+  const int lastX = (tempLastX <= screenWidthInTiles) ? tempLastX : screenWidthInTiles;
+  const int lastY = (tempLastY <= screenHeightInTiles) ? tempLastY : screenHeightInTiles;
+  */
+  unsigned char tempscreently = screently;
+  unsigned char tempscreentlx = screentlx;
+  
+  for(int x = 0; x < 13; ++x)
+  {
+    for(int y = 0; y < 7; ++y)
+    {   
+      const int drawX = (x * TILE_SIZE);
+      const int drawY = (y * TILE_SIZE);
+
+     // const uint8_t tileIndex = (getMapBit(screentlx, screently) != 0) ? 0 : 1;
+      //Sprites::drawSelfMasked(drawX, drawY, longtileset, tileIndex);
+      if (tempscreentlx >= 0 && tempscreentlx < 64 && tempscreently >=0 && tempscreently < 65) {
+      if(getMapBit(tempscreentlx, tempscreently)){
+        sprites.drawSelfMasked(drawX, drawY, longtileset, 0);
+        }
+        else {
+          sprites.drawSelfMasked(drawX, drawY, longtileset, 1);
+        }
+      }
+      tempscreently++;
+    }
+    tempscreently = screently;
+    tempscreentlx++;
+  }
+  
+   arduboy.fillRect(0, 0, 48, 8, BLACK);
+ arduboy.setCursor(0, 0);
+  arduboy.print(playerx);
+  //arduboy.print(room1x);
+ // arduboy.print(",");
+  arduboy.print(playery);
+  //arduboy.print(room1y);
+//  arduboy.print(" ");
+  //arduboy.print(screentlx);#
+ // arduboy.print(room2x);
+ /// arduboy.print(",");
+ // arduboy.print(screently);
+//arduboy.print(room2y);
+  
+}
+/*void drawworld() {
+  setMapBit(8,8);
+  setMapBit(7,7);
+  setMapBit(6,6);
   const int tileswide = 96 / TILE_SIZE + 1;
   const int tilestall = 64 / TILE_SIZE + 1;
-  for(int y = 0; y < tilestall; y++) {
+  /*for(int y = 0; y < tilestall; y++) {
     for(int x = 0; x < tileswide; x++) {
       const int tilex = x - mapx / TILE_SIZE;
       const int tiley = y - mapy / TILE_SIZE;
@@ -335,12 +405,25 @@ void drawworld() {
         }
       }
     }
+
+    for(int y = 0; y < 20; y++) {
+    for(int x = 0; x < 20; x++) {
+     if(getMapBit(x, y)){
+        sprites.drawSelfMasked(x * TILE_SIZE , y * TILE_SIZE , longtileset, 0 );
+        }
+        else {
+          sprites.drawSelfMasked(x * TILE_SIZE , y * TILE_SIZE , longtileset, 1 );
+        }
+    }
+  }
+
+    
    arduboy.fillRect(0, 0, 48, 8, BLACK);
  arduboy.setCursor(0, 0);
   arduboy.print(0 - mapx / TILE_SIZE);
   arduboy.print(",");
   arduboy.print(0 - mapy / TILE_SIZE);
-  }
+  }*/
 
 
 
@@ -350,54 +433,55 @@ void titlescreen() {
   arduboy.print("Title Screen\n");
   
   if(arduboy.justPressed(A_BUTTON)) {
-    gamestate = GAME_PLAY;
+    gamestate = LEVEL_SETUP;
   }
 }
 
 void playerinput() {
+  if (arduboy.everyXFrames(3)){
   if(arduboy.pressed(UP_BUTTON)) {
-    if(mapy < PLAYER_Y_OFFSET) {
-      mapy += 1;
+    if(playery > 0) {
+      if (getMapBit(playerx,playery -1) != 0){
+      playery -= 1;
+      }
     }
   }
   if(arduboy.pressed(DOWN_BUTTON)) {
-    if(PLAYER_Y_OFFSET + PLAYER_SIZE < mapy + TILE_SIZE * WORLD_HEIGHT) {
-      mapy -= 1;
+    if(playery < 64) {
+      if (getMapBit(playerx,playery +1) != 0){
+      playery += 1;
     }
   }
+  }
   if(arduboy.pressed(LEFT_BUTTON)) {
-   if(mapx < PLAYER_X_OFFSET) {
-     mapx += 1;
+   if(playerx > 0){
+    if (getMapBit(playerx-1,playery) != 0){
+   
+    playerx -= 1;
+    }
     }
   }
   if(arduboy.pressed(RIGHT_BUTTON)) {
-   if(PLAYER_X_OFFSET + PLAYER_SIZE < mapx + TILE_SIZE * WORLD_WIDTH) {
-     mapx -= 1;
+   if(playerx < 64) {
+    if (getMapBit(playerx + 1,playery) != 0){
+   
+     playerx += 1;
+    }
     }
   }
-  
+  }
 }
 
 void gameplay() {
-  
-  if (genned = 0)
-    {
-      // genDungeon();
-     
-       genned++;
-    }
-  else {
-    
-  }
    
   playerinput();
   drawworld();
   drawplayer();
   if(arduboy.justPressed(A_BUTTON)) {
-    gamestate = GAME_OVER;
+    gamestate = GAME_TITLE;
   } 
   if(arduboy.justPressed(B_BUTTON)) {
-    //genDungeon();
+    gamestate= GAME_TITLE;
   }
   
 }
@@ -407,6 +491,18 @@ void gameoverscreen() {
   arduboy.setCursor(0, 0);
   arduboy.print(mapx);
 }
+void placeChar(){
+// all this is temporary
+unsigned char tempPY;
+unsigned char tempPX;
+  while (getMapBit(tempPX, tempPY) == 0){
+   tempPX = random(5,55);
+   tempPY = random(5,55);
+  }
+  playerx = tempPX;
+  playery = tempPY;
+  
+}
 
 
 void gameloop() {
@@ -415,7 +511,11 @@ void gameloop() {
       titlescreen();
     //titlescreen stuff
       break;
-
+    case LEVEL_SETUP:
+      genDungeon();
+      placeChar();
+      gamestate = GAME_PLAY;
+      break;
     case GAME_PLAY:
     //gameplay stuff
       
@@ -435,11 +535,15 @@ void setup() {
   arduboy.initRandomSeed();
   arduboy.display();
   arduboy.clear();
+
+  //playerx = 9;//random(2,60);
+ // playery = 9;// random(2,60);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   if(!(arduboy.nextFrame())){
+    return;
   }
   arduboy.pollButtons();
   arduboy.clear();
